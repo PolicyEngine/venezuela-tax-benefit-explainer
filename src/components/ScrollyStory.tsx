@@ -78,7 +78,7 @@ const getStorySteps = (
   {
     id: "income-tax",
     title: "Income tax",
-    content: `Venezuela has 8 income tax brackets, ranging from 6% to 34%. Tax is calculated in Tax Units (Unidades Tributarias), equal to ${fmt(VALUES.taxUnit)} in 2025.`,
+    content: `Venezuela has 8 income tax brackets, ranging from 6% to 34%. Tax is calculated in Tax Units (Unidades Tributarias), currently ${fmt(VALUES.taxUnit)}. The Tax Unit was designed to adjust with inflation, but stopped tracking real inflation after 2015.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -99,7 +99,7 @@ const getStorySteps = (
   {
     id: "sistema-patria",
     title: "Sistema Patria",
-    content: `Carnet de la Patria holders receive ${fmtMonthly(VALUES.sistemaPatriaMonthly)}/month (${fmt(VALUES.sistemaPatriaAnnual)}/year).`,
+    content: `The Carnet de la Patria, introduced in 2017, is required for most social benefits. Over 17 million Venezuelans (of 30 million) registered in the first year. Cardholders receive ${fmtMonthly(VALUES.sistemaPatriaMonthly)}/month (${fmt(VALUES.sistemaPatriaAnnual)}/year).`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -111,7 +111,7 @@ const getStorySteps = (
   {
     id: "amor-mayor",
     title: "Amor Mayor pension",
-    content: `Venezuelans over 60 (women) or 65 (men) with income below ${fmt(VALUES.amorMayorThreshold)}/year receive ${fmt(VALUES.amorMayorBenefit)}/year.`,
+    content: `Introduced in 2011 at ~$545/month, this pension for elderly Venezuelans now pays ${fmt(VALUES.amorMayorBenefit)}/year—a 99.9% loss in USD purchasing power due to hyperinflation. Eligibility: women 60+, men 65+, income below ${fmt(VALUES.amorMayorThreshold)}/year.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
