@@ -5,6 +5,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import NetIncomeChart, { type NetIncomeChartProps } from "./NetIncomeChart";
+import { CurrencyProvider } from "../context/CurrencyContext";
 
 // Mock recharts completely to avoid rendering issues in tests
 jest.mock("recharts", () => ({
@@ -36,14 +37,22 @@ const defaultChartState: NetIncomeChartProps["chartState"] = {
   householdType: "single",
 };
 
+const renderWithProvider = (chartState: NetIncomeChartProps["chartState"]) => {
+  return render(
+    <CurrencyProvider>
+      <NetIncomeChart chartState={chartState} />
+    </CurrencyProvider>,
+  );
+};
+
 describe("NetIncomeChart", () => {
   it("renders without crashing", () => {
-    render(<NetIncomeChart chartState={defaultChartState} />);
+    renderWithProvider(defaultChartState);
     expect(screen.getByTestId("net-income-chart")).toBeInTheDocument();
   });
 
   it("renders chart container", () => {
-    render(<NetIncomeChart chartState={defaultChartState} />);
+    renderWithProvider(defaultChartState);
     expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
   });
 
@@ -59,7 +68,7 @@ describe("NetIncomeChart", () => {
       householdType: "elder" as const,
     };
 
-    render(<NetIncomeChart chartState={allVisibleState} />);
+    renderWithProvider(allVisibleState);
 
     // Check for legend labels
     expect(screen.getByText(/Gross Income/i)).toBeInTheDocument();
@@ -75,13 +84,15 @@ describe("NetIncomeChart", () => {
       householdType: "elder" as const,
     };
 
-    render(<NetIncomeChart chartState={cliffState} />);
+    renderWithProvider(cliffState);
     expect(screen.getByText(/cliff/i)).toBeInTheDocument();
   });
 
   it("updates when household type changes", () => {
     const { rerender } = render(
-      <NetIncomeChart chartState={defaultChartState} />,
+      <CurrencyProvider>
+        <NetIncomeChart chartState={defaultChartState} />
+      </CurrencyProvider>,
     );
 
     // Change to elder household
@@ -89,7 +100,11 @@ describe("NetIncomeChart", () => {
       ...defaultChartState,
       householdType: "elder" as const,
     };
-    rerender(<NetIncomeChart chartState={elderState} />);
+    rerender(
+      <CurrencyProvider>
+        <NetIncomeChart chartState={elderState} />
+      </CurrencyProvider>,
+    );
 
     // Component should still render
     expect(screen.getByTestId("net-income-chart")).toBeInTheDocument();
@@ -102,7 +117,7 @@ describe("NetIncomeChart", () => {
       householdType: "family" as const,
     };
 
-    render(<NetIncomeChart chartState={familyState} />);
+    renderWithProvider(familyState);
     expect(screen.getByText(/Bono Escolaridad/i)).toBeInTheDocument();
   });
 });

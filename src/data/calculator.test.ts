@@ -1,12 +1,8 @@
 /**
  * Tests for Venezuela tax-benefit calculator
  *
- * These tests validate the calculations for:
- * - Income tax (8 progressive brackets, 6-34%)
- * - Payroll taxes (IVSS 4%, BANAVIH 1%)
- * - Gran Mision Amor Mayor (pension with cliff at min wage)
- * - Sistema Patria bonuses
- * - Child benefits (escolaridad, lactancia)
+ * These tests validate against policyengine-ve calculations.
+ * Test values are from running policyengine-ve directly.
  */
 
 import {
@@ -21,41 +17,52 @@ import {
   type CalculationResult,
 } from "./calculator";
 
-// 2025 Tax Unit value
-const TAX_UNIT_2025 = 43; // VES
+// 2025 Parameters matching policyengine-ve
+const TAX_UNIT = 43; // VES
+const MIN_WAGE_MONTHLY = 130; // VES
+const MIN_WAGE_ANNUAL = MIN_WAGE_MONTHLY * 12; // 1560 VES
 
-describe("Income Tax", () => {
-  it("should apply 6% rate for income in first bracket (0-1000 TU)", () => {
-    const income = 500 * TAX_UNIT_2025; // 500 TU = 21,500 VES
-    // All income taxed at 6% in first bracket
-    expect(calculateIncomeTax(income)).toBeCloseTo(income * 0.06, 2);
+describe("Income Tax - validated against policyengine-ve", () => {
+  it("should match PE for 50000 VES income: 3210", () => {
+    // PE output: income_tax = 3210.00
+    // Formula: (50000/43) * 0.09 - 30 = 1162.79 * 0.09 - 30 = 74.65 TU * 43 = 3210
+    expect(calculateIncomeTax(50000)).toBeCloseTo(3210, 0);
   });
 
-  it("should calculate 6% for income in first bracket", () => {
-    // First bracket: 1-1000 TU at 6%
-    const income = 1000 * TAX_UNIT_2025; // 43,000 VES
-    const taxableIncome = income; // All in 6% bracket
-    const expected = taxableIncome * 0.06;
-    expect(calculateIncomeTax(income)).toBeCloseTo(expected, 2);
+  it("should match PE for 1500 VES income: 90", () => {
+    // PE output: income_tax = 90.00
+    // Formula: (1500/43) * 0.06 - 0 = 34.88 * 0.06 = 2.09 TU * 43 = 90
+    expect(calculateIncomeTax(1500)).toBeCloseTo(90, 0);
   });
 
-  it("should apply progressive rates for higher income", () => {
-    // 2000 TU income: 1000 at 6%, 500 at 9%, 500 at 12%
-    const income = 2000 * TAX_UNIT_2025; // 86,000 VES
-    const tax = calculateIncomeTax(income);
-    // Should be more than flat 6% but less than flat 12%
-    expect(tax).toBeGreaterThan(income * 0.06);
-    expect(tax).toBeLessThan(income * 0.12);
+  it("should match PE for 1600 VES income: 96", () => {
+    // PE output: income_tax = 96.00
+    expect(calculateIncomeTax(1600)).toBeCloseTo(96, 0);
+  });
+
+  it("should return 0 for 0 income", () => {
+    expect(calculateIncomeTax(0)).toBe(0);
   });
 });
 
-describe("Payroll Tax", () => {
-  it("should calculate 5% total (4% IVSS + 1% BANAVIH)", () => {
-    const income = 50000;
-    const result = calculatePayrollTax(income);
-    expect(result.ivss).toBe(income * 0.04);
-    expect(result.banavih).toBe(income * 0.01);
-    expect(result.total).toBe(income * 0.05);
+describe("Payroll Tax - validated against policyengine-ve", () => {
+  it("should match PE for 50000 VES income: 812", () => {
+    // PE output: employee_payroll_tax = 812.00
+    // IVSS: min(50000, 7800) * 0.04 = 7800 * 0.04 = 312
+    // BANAVIH: 50000 * 0.01 = 500
+    // Total: 312 + 500 = 812
+    const result = calculatePayrollTax(50000);
+    expect(result.total).toBeCloseTo(812, 0);
+    expect(result.ivss).toBeCloseTo(312, 0);
+    expect(result.banavih).toBeCloseTo(500, 0);
+  });
+
+  it("should cap IVSS at 5x minimum wage", () => {
+    // Cap = 130 * 5 * 12 = 7800 VES annual
+    const annualCap = MIN_WAGE_MONTHLY * 5 * 12;
+    const result = calculatePayrollTax(100000); // Well above cap
+    // IVSS should be capped: 7800 * 0.04 = 312
+    expect(result.ivss).toBeCloseTo(annualCap * 0.04, 0);
   });
 
   it("should return 0 for 0 income", () => {
@@ -137,35 +144,77 @@ describe("Child Benefits", () => {
   });
 });
 
-describe("Net Income Calculation", () => {
-  it("should calculate correct net income for a simple case", () => {
+describe("Net Income Calculation - validated against policyengine-ve", () => {
+  it("should match PE for 50000 VES single worker: net ~45978", () => {
+    // PE output: person_net_income = 45978.00
+    // Gross: 50000, Tax: 3210, Payroll: 812, Benefits: 0
     const input: HouseholdInput = {
       grossIncome: 50000,
-      age: 30,
+      age: 35,
       isMale: true,
       hasCarnetPatria: true,
       isAmorMayorEligible: false,
       schoolAgeChildren: 0,
       isBreastfeeding: false,
+      isSistemaPatriaEligible: false,
     };
 
     const result = calculateNetIncome(input);
 
     expect(result.grossIncome).toBe(50000);
-    expect(result.incomeTax).toBeGreaterThan(0);
-    expect(result.payrollTax).toBe(50000 * 0.05);
-    expect(result.netIncome).toBeLessThan(50000);
+    expect(result.incomeTax).toBeCloseTo(3210, 0);
+    expect(result.payrollTax).toBeCloseTo(812, 0);
+    expect(result.netIncome).toBeCloseTo(45978, 0);
   });
 
-  it("should show Amor Mayor cliff effect", () => {
-    const baseInput: HouseholdInput = {
-      grossIncome: 0,
-      age: 65,
+  it("should match PE for elder below cliff: net ~2895", () => {
+    // PE output: person_net_income = 2895.00
+    // Gross: 1500, Tax: 90, Payroll: 75, Amor Mayor: 1560, Net: 2895
+    const input: HouseholdInput = {
+      grossIncome: 1500,
+      age: 68,
       isMale: true,
       hasCarnetPatria: true,
       isAmorMayorEligible: true,
       schoolAgeChildren: 0,
       isBreastfeeding: false,
+      isSistemaPatriaEligible: false,
+    };
+
+    const result = calculateNetIncome(input);
+    expect(result.amorMayor).toBe(1560);
+    expect(result.netIncome).toBeCloseTo(2895, 0);
+  });
+
+  it("should match PE for elder above cliff: net ~1424", () => {
+    // PE output: person_net_income = 1424.00
+    // Gross: 1600, Tax: 96, Payroll: 80, Amor Mayor: 0, Net: 1424
+    const input: HouseholdInput = {
+      grossIncome: 1600,
+      age: 68,
+      isMale: true,
+      hasCarnetPatria: true,
+      isAmorMayorEligible: true,
+      schoolAgeChildren: 0,
+      isBreastfeeding: false,
+      isSistemaPatriaEligible: false,
+    };
+
+    const result = calculateNetIncome(input);
+    expect(result.amorMayor).toBe(0);
+    expect(result.netIncome).toBeCloseTo(1424, 0);
+  });
+
+  it("should show Amor Mayor cliff effect: net drops by ~1471", () => {
+    const baseInput: HouseholdInput = {
+      grossIncome: 0,
+      age: 68,
+      isMale: true,
+      hasCarnetPatria: true,
+      isAmorMayorEligible: true,
+      schoolAgeChildren: 0,
+      isBreastfeeding: false,
+      isSistemaPatriaEligible: false,
     };
 
     // Just below cliff
@@ -173,10 +222,9 @@ describe("Net Income Calculation", () => {
     // Just above cliff
     const aboveCliff = calculateNetIncome({ ...baseInput, grossIncome: 1600 });
 
-    // Net income should DROP when crossing the cliff
+    // Net income should DROP when crossing the cliff (2895 vs 1424)
     expect(belowCliff.netIncome).toBeGreaterThan(aboveCliff.netIncome);
-    expect(belowCliff.amorMayor).toBeGreaterThan(0);
-    expect(aboveCliff.amorMayor).toBe(0);
+    expect(belowCliff.netIncome - aboveCliff.netIncome).toBeCloseTo(1471, 0);
   });
 
   it("should include child benefits when applicable", () => {
@@ -188,6 +236,7 @@ describe("Net Income Calculation", () => {
       isAmorMayorEligible: false,
       schoolAgeChildren: 2,
       isBreastfeeding: true,
+      isSistemaPatriaEligible: false,
     };
 
     const result = calculateNetIncome(withChildren);

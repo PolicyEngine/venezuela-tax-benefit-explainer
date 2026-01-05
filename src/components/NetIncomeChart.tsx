@@ -23,6 +23,12 @@ import {
   CONSTANTS,
   type HouseholdInput,
 } from "../data/calculator";
+import { useCurrency } from "../context/CurrencyContext";
+import {
+  formatCurrency,
+  convertVesToUsd,
+  getCurrencySymbol,
+} from "../data/currency";
 import { colors } from "../design/colors";
 import { fonts, fontSizes, fontWeights } from "../design/typography";
 
@@ -70,12 +76,15 @@ const HOUSEHOLD_CONFIGS: Record<string, Omit<HouseholdInput, "grossIncome">> = {
   },
 };
 
-const formatCurrency = (value: number): string => {
-  return `${value.toLocaleString("es-VE")} Bs`;
-};
 
 const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
   const { householdType, highlightCliff } = chartState;
+  const { currency } = useCurrency();
+
+  // Helper to convert values based on current currency
+  const convertValue = (vesValue: number): number => {
+    return currency === "USD" ? convertVesToUsd(vesValue) : vesValue;
+  };
 
   // Generate data for the selected household type
   const data = useMemo(() => {
@@ -83,26 +92,35 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
     const schedule = generateIncomeSchedule(config, 0, 10000, 201);
 
     return schedule.map((result) => ({
-      grossIncome: result.grossIncome,
-      netIncome: result.netIncome,
-      incomeTax: -result.incomeTax, // Negative for stacking below
-      payrollTax: -result.payrollTax,
-      sistemaPatria: result.sistemaPatria,
-      amorMayor: result.amorMayor,
-      bonoEscolaridad: result.bonoEscolaridad,
-      bonoLactancia: result.bonoLactancia,
-      totalBenefits: result.totalBenefits,
+      grossIncome: convertValue(result.grossIncome),
+      netIncome: convertValue(result.netIncome),
+      incomeTax: -convertValue(result.incomeTax), // Negative for stacking below
+      payrollTax: -convertValue(result.payrollTax),
+      sistemaPatria: convertValue(result.sistemaPatria),
+      amorMayor: convertValue(result.amorMayor),
+      bonoEscolaridad: convertValue(result.bonoEscolaridad),
+      bonoLactancia: convertValue(result.bonoLactancia),
+      totalBenefits: convertValue(result.totalBenefits),
       // For visualization: stack taxes below, benefits above
-      afterTax: result.grossIncome - result.incomeTax - result.payrollTax,
-      withBenefits: result.netIncome,
+      afterTax: convertValue(
+        result.grossIncome - result.incomeTax - result.payrollTax,
+      ),
+      withBenefits: convertValue(result.netIncome),
     }));
-  }, [householdType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdType, currency]);
 
   // Find cliff location for Amor Mayor
   const cliffLocation = useMemo(() => {
     if (householdType !== "elder") return null;
-    return CONSTANTS.MINIMUM_WAGE_ANNUAL;
-  }, [householdType]);
+    return convertValue(CONSTANTS.MINIMUM_WAGE_ANNUAL);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdType, currency]);
+
+  // Format value for display
+  const formatValue = (value: number): string => {
+    return formatCurrency(value, currency, false);
+  };
 
   return (
     <div
@@ -145,9 +163,11 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
 
             <XAxis
               dataKey="grossIncome"
-              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              tickFormatter={(v) =>
+                `${getCurrencySymbol(currency)}${(v / (currency === "USD" ? 1 : 1000)).toFixed(currency === "USD" ? 0 : 0)}${currency === "VES" ? "k" : ""}`
+              }
               label={{
-                value: "Gross Income (VES/year)",
+                value: `Gross Income (${currency}/year)`,
                 position: "bottom",
                 style: {
                   fill: colors.ink,
@@ -163,9 +183,11 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
             />
 
             <YAxis
-              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              tickFormatter={(v) =>
+                `${getCurrencySymbol(currency)}${(v / (currency === "USD" ? 1 : 1000)).toFixed(currency === "USD" ? 0 : 0)}${currency === "VES" ? "k" : ""}`
+              }
               label={{
-                value: "VES/year",
+                value: `${currency}/year`,
                 angle: -90,
                 position: "insideLeft",
                 style: {
@@ -183,11 +205,11 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
 
             <Tooltip
               formatter={(value, name) => [
-                typeof value === "number" ? formatCurrency(Math.abs(value)) : "",
+                typeof value === "number" ? formatValue(Math.abs(value)) : "",
                 name ?? "",
               ]}
               labelFormatter={(label) =>
-                `Gross: ${formatCurrency(typeof label === "number" ? label : 0)}`
+                `Gross: ${formatValue(typeof label === "number" ? label : 0)}`
               }
               contentStyle={{
                 backgroundColor: "white",
@@ -376,7 +398,7 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
             color: colors.rojo,
           }}
         >
-          <strong>Benefit Cliff at {formatCurrency(cliffLocation)}</strong>
+          <strong>Benefit Cliff at {formatValue(cliffLocation)}</strong>
           <br />
           Crossing the minimum wage threshold causes Amor Mayor to drop to zero
         </div>

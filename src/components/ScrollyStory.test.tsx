@@ -5,6 +5,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import ScrollyStory, { STORY_STEPS, type StoryStep } from "./ScrollyStory";
+import { CurrencyProvider } from "../context/CurrencyContext";
 
 // Mock recharts to avoid rendering issues in tests
 jest.mock("recharts", () => ({
@@ -43,14 +44,22 @@ mockIntersectionObserver.mockReturnValue({
 });
 window.IntersectionObserver = mockIntersectionObserver;
 
+const renderWithProvider = () => {
+  return render(
+    <CurrencyProvider>
+      <ScrollyStory />
+    </CurrencyProvider>,
+  );
+};
+
 describe("ScrollyStory", () => {
   it("renders without crashing", () => {
-    render(<ScrollyStory />);
+    renderWithProvider();
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
 
   it("renders hero section with title", () => {
-    render(<ScrollyStory />);
+    renderWithProvider();
     // The title "Venezuela's" appears in the hero h1
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       /Venezuela/i,
@@ -58,14 +67,14 @@ describe("ScrollyStory", () => {
   });
 
   it("renders all story steps", () => {
-    render(<ScrollyStory />);
+    renderWithProvider();
     STORY_STEPS.forEach((step) => {
       expect(screen.getByText(step.title)).toBeInTheDocument();
     });
   });
 
   it("renders the sticky chart container", () => {
-    render(<ScrollyStory />);
+    renderWithProvider();
     const chart = screen.getByTestId("sticky-chart");
     expect(chart).toBeInTheDocument();
   });

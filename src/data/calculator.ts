@@ -2,7 +2,7 @@
  * Venezuela Tax-Benefit Calculator
  *
  * Implements Venezuela's tax and benefit system for 2025.
- * Based on SENIAT income tax law and Sistema Patria programs.
+ * Validated against policyengine-ve.
  *
  * References:
  * - Income Tax: Ley de Impuesto sobre la Renta
@@ -12,29 +12,32 @@
  * - Hogares de la Patria: Decreto 1.149 (Gaceta 40.465)
  */
 
-// 2025 Parameters
+// 2025 Parameters (matching policyengine-ve)
 const TAX_UNIT = 43; // VES per Tax Unit (Unidad Tributaria)
-const MINIMUM_WAGE_ANNUAL = 1560; // VES/year
+const MINIMUM_WAGE_MONTHLY = 130; // VES/month
+const MINIMUM_WAGE_ANNUAL = MINIMUM_WAGE_MONTHLY * 12; // 1560 VES/year
 
-// Income Tax Brackets (in Tax Units)
+// Income Tax Brackets with deductions (in Tax Units)
+// Formula: tax_TU = income_TU * rate - deduction_TU
 const TAX_BRACKETS = [
-  { threshold: 1000, rate: 0.06 },
-  { threshold: 1500, rate: 0.09 },
-  { threshold: 2000, rate: 0.12 },
-  { threshold: 2500, rate: 0.16 },
-  { threshold: 3000, rate: 0.2 },
-  { threshold: 4000, rate: 0.24 },
-  { threshold: 6000, rate: 0.29 },
-  { threshold: Infinity, rate: 0.34 },
+  { threshold: 0, rate: 0.06, deduction: 0 },
+  { threshold: 1000, rate: 0.09, deduction: 30 },
+  { threshold: 1500, rate: 0.12, deduction: 75 },
+  { threshold: 2000, rate: 0.16, deduction: 155 },
+  { threshold: 2500, rate: 0.2, deduction: 255 },
+  { threshold: 3000, rate: 0.24, deduction: 375 },
+  { threshold: 4000, rate: 0.29, deduction: 575 },
+  { threshold: 6000, rate: 0.34, deduction: 875 },
 ];
 
 // Payroll Tax Rates
 const IVSS_RATE = 0.04; // 4%
-const BANAVIH_RATE = 0.01; // 1%
+const IVSS_CAP_MULTIPLIER = 5; // 5x minimum wage cap
+const BANAVIH_RATE = 0.01; // 1% (no cap)
 
 // Benefit Amounts (annual)
-const AMOR_MAYOR_BENEFIT = 1560; // VES/year (equal to min wage)
-const SISTEMA_PATRIA_MONTHLY = 90; // VES/month
+const AMOR_MAYOR_BENEFIT = MINIMUM_WAGE_ANNUAL; // Equal to min wage
+const SISTEMA_PATRIA_MONTHLY = 90; // VES/month (but eligibility is complex)
 const BONO_ESCOLARIDAD_MONTHLY = 446; // VES/month per child
 const BONO_LACTANCIA_MONTHLY = 558; // VES/month
 
@@ -75,34 +78,37 @@ export interface CalculationResult {
 }
 
 /**
- * Calculate progressive income tax using Tax Unit brackets
+ * Calculate income tax using policyengine-ve formula:
+ * tax = income_TU * rate - deduction_TU (converted to VES)
  */
 export function calculateIncomeTax(grossIncome: number): number {
   const incomeInTU = grossIncome / TAX_UNIT;
 
-  let tax = 0;
-  let previousThreshold = 0;
-
+  // Find applicable bracket (highest threshold <= income)
+  let applicableBracket = TAX_BRACKETS[0];
   for (const bracket of TAX_BRACKETS) {
-    if (incomeInTU <= previousThreshold) break;
-
-    const taxableInBracket = Math.min(
-      Math.max(incomeInTU - previousThreshold, 0),
-      bracket.threshold - previousThreshold,
-    );
-
-    tax += taxableInBracket * bracket.rate * TAX_UNIT;
-    previousThreshold = bracket.threshold;
+    if (incomeInTU >= bracket.threshold) {
+      applicableBracket = bracket;
+    }
   }
 
-  return tax;
+  // Calculate tax: (income * rate - deduction) in TU, then convert to VES
+  const taxTU = incomeInTU * applicableBracket.rate - applicableBracket.deduction;
+  return Math.max(taxTU * TAX_UNIT, 0);
 }
 
 /**
  * Calculate payroll taxes (IVSS + BANAVIH)
+ * IVSS: 4% capped at 5x minimum wage
+ * BANAVIH: 1% with no cap
  */
 export function calculatePayrollTax(grossIncome: number): PayrollTaxResult {
-  const ivss = grossIncome * IVSS_RATE;
+  // IVSS has annual cap of 5x minimum wage
+  const annualCap = MINIMUM_WAGE_MONTHLY * IVSS_CAP_MULTIPLIER * 12;
+  const cappedIncome = Math.min(grossIncome, annualCap);
+  const ivss = cappedIncome * IVSS_RATE;
+
+  // BANAVIH has no cap
   const banavih = grossIncome * BANAVIH_RATE;
 
   return {
@@ -137,6 +143,8 @@ export function calculateAmorMayor(
 
 /**
  * Calculate Sistema Patria monthly bonus
+ * Note: In policyengine-ve, this shows 0 for basic cases - eligibility is complex
+ * For the explainer, we model it as available with Carnet de la Patria
  */
 export function calculateSistemaPatriaBonus(isEligible: boolean): number {
   return isEligible ? SISTEMA_PATRIA_MONTHLY * 12 : 0;
@@ -184,8 +192,9 @@ export function calculateNetIncome(input: HouseholdInput): CalculationResult {
   const payrollResult = calculatePayrollTax(grossIncome);
 
   // Calculate benefits
+  // Sistema Patria eligibility is complex - default to false unless explicitly enabled
   const sistemaPatria = calculateSistemaPatriaBonus(
-    input.isSistemaPatriaEligible ?? hasCarnetPatria,
+    input.isSistemaPatriaEligible ?? false,
   );
 
   // Amor Mayor uses household income for threshold test
@@ -203,10 +212,7 @@ export function calculateNetIncome(input: HouseholdInput): CalculationResult {
     schoolAgeChildren,
     hasCarnetPatria,
   );
-  const bonoLactancia = calculateBonoLactancia(
-    isBreastfeeding,
-    hasCarnetPatria,
-  );
+  const bonoLactancia = calculateBonoLactancia(isBreastfeeding, hasCarnetPatria);
 
   const totalTaxes = incomeTax + payrollResult.total;
   const totalBenefits =
@@ -275,6 +281,7 @@ export function calculateMarginalRate(
 // Export constants for use in charts
 export const CONSTANTS = {
   TAX_UNIT,
+  MINIMUM_WAGE_MONTHLY,
   MINIMUM_WAGE_ANNUAL,
   AMOR_MAYOR_BENEFIT,
   SISTEMA_PATRIA_MONTHLY,
@@ -282,5 +289,6 @@ export const CONSTANTS = {
   BONO_LACTANCIA_MONTHLY,
   TAX_BRACKETS,
   IVSS_RATE,
+  IVSS_CAP_MULTIPLIER,
   BANAVIH_RATE,
 };
