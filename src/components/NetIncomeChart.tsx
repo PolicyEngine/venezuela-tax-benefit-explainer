@@ -89,7 +89,7 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
   // Generate data for the selected household type
   const data = useMemo(() => {
     const config = HOUSEHOLD_CONFIGS[householdType];
-    const schedule = generateIncomeSchedule(config, 0, 10000, 201);
+    const schedule = generateIncomeSchedule(config, 0, 2000000, 201);
 
     return schedule.map((result) => ({
       grossIncome: convertValue(result.grossIncome),

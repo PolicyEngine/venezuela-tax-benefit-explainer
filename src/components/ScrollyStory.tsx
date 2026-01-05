@@ -5,9 +5,11 @@
  * different views of the net income chart.
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Scrollama, Step } from "react-scrollama";
 import NetIncomeChart from "./NetIncomeChart";
+import { useCurrency } from "../context/CurrencyContext";
+import { formatCurrency, convertVesToUsd } from "../data/currency";
 import { colors } from "../design/colors";
 import {
   fonts,
@@ -47,7 +49,23 @@ const DEFAULT_CHART_STATE: ChartState = {
   householdType: "single",
 };
 
-export const STORY_STEPS: StoryStep[] = [
+// VES values for benefits (will be formatted dynamically)
+const VALUES = {
+  sistemaPatriaMonthly: 90,
+  sistemaPatriaAnnual: 1080,
+  amorMayorThreshold: 1560,
+  amorMayorBenefit: 1560,
+  amorMayorCliffLoss: 1471,
+  bonoEscolaridadMonthly: 446,
+  bonoLactanciaMonthly: 558,
+  taxUnit: 43,
+};
+
+// Generate story steps with formatted currency values
+const getStorySteps = (
+  fmt: (ves: number) => string,
+  fmtMonthly: (ves: number) => string,
+): StoryStep[] => [
   {
     id: "intro",
     title: "Gross income",
@@ -60,7 +78,7 @@ export const STORY_STEPS: StoryStep[] = [
   {
     id: "income-tax",
     title: "Income tax",
-    content: `Venezuela has 8 income tax brackets, ranging from 6% to 34%. Tax is calculated in Tax Units (Unidades Tributarias), equal to 43 VES in 2025.`,
+    content: `Venezuela has 8 income tax brackets, ranging from 6% to 34%. Tax is calculated in Tax Units (Unidades Tributarias), equal to ${fmt(VALUES.taxUnit)} in 2025.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -81,7 +99,7 @@ export const STORY_STEPS: StoryStep[] = [
   {
     id: "sistema-patria",
     title: "Sistema Patria",
-    content: `Carnet de la Patria holders receive 90 VES/month (1,080 VES/year).`,
+    content: `Carnet de la Patria holders receive ${fmtMonthly(VALUES.sistemaPatriaMonthly)}/month (${fmt(VALUES.sistemaPatriaAnnual)}/year).`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -93,7 +111,7 @@ export const STORY_STEPS: StoryStep[] = [
   {
     id: "amor-mayor",
     title: "Amor Mayor pension",
-    content: `Venezuelans over 60 (women) or 65 (men) with income below 1,560 VES/year receive 1,560 VES/year. At the threshold, the benefit drops to zero, creating a cliff where earning 1 VES more reduces net income by ~1,471 VES.`,
+    content: `Venezuelans over 60 (women) or 65 (men) with income below ${fmt(VALUES.amorMayorThreshold)}/year receive ${fmt(VALUES.amorMayorBenefit)}/year.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -108,7 +126,7 @@ export const STORY_STEPS: StoryStep[] = [
   {
     id: "child-benefits",
     title: "Child benefits",
-    content: `Bono de Escolaridad: 446 VES/month per child aged 4-17. Bono de Lactancia: 558 VES/month for breastfeeding mothers. Both require Carnet de la Patria.`,
+    content: `Bono de Escolaridad: ${fmtMonthly(VALUES.bonoEscolaridadMonthly)}/month per child aged 4-17. Bono de Lactancia: ${fmtMonthly(VALUES.bonoLactanciaMonthly)}/month for breastfeeding mothers. Both require Carnet de la Patria.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -137,16 +155,40 @@ export const STORY_STEPS: StoryStep[] = [
   },
 ];
 
+// Static export for tests (VES values)
+export const STORY_STEPS: StoryStep[] = getStorySteps(
+  (v) => `${v.toLocaleString()} VES`,
+  (v) => `${v.toLocaleString()} VES`,
+);
+
 const ScrollyStory: React.FC = () => {
+  const { currency } = useCurrency();
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Generate currency-aware story steps
+  const storySteps = useMemo(() => {
+    const fmt = (ves: number) => {
+      const value = currency === "USD" ? convertVesToUsd(ves) : ves;
+      return formatCurrency(value, currency, false);
+    };
+    const fmtMonthly = (ves: number) => {
+      const value = currency === "USD" ? convertVesToUsd(ves) : ves;
+      return formatCurrency(value, currency, false);
+    };
+    return getStorySteps(fmt, fmtMonthly);
+  }, [currency]);
+
   const [chartState, setChartState] = useState<ChartState>(
     STORY_STEPS[0].chartState,
   );
 
-  const onStepEnter = useCallback(({ data }: { data: number }) => {
-    setCurrentStep(data);
-    setChartState(STORY_STEPS[data].chartState);
-  }, []);
+  const onStepEnter = useCallback(
+    ({ data }: { data: number }) => {
+      setCurrentStep(data);
+      setChartState(storySteps[data].chartState);
+    },
+    [storySteps],
+  );
 
   return (
     <main
@@ -237,7 +279,7 @@ const ScrollyStory: React.FC = () => {
           }}
         >
           <Scrollama onStepEnter={onStepEnter} offset={0.5}>
-            {STORY_STEPS.map((step, index) => (
+            {storySteps.map((step, index) => (
               <Step key={step.id} data={index}>
                 <div
                   style={{
@@ -282,23 +324,6 @@ const ScrollyStory: React.FC = () => {
                     >
                       {step.content}
                     </p>
-                    {step.id === "amor-mayor" && (
-                      <div
-                        style={{
-                          marginTop: "1rem",
-                          padding: "1rem",
-                          backgroundColor: colors.rojoPale,
-                          borderLeft: `4px solid ${colors.rojo}`,
-                          borderRadius: "4px",
-                        }}
-                      >
-                        <strong style={{ color: colors.rojo }}>
-                          MTR exceeds 100%
-                        </strong>
-                        : Earning 100 VES more at the cliff reduces net income
-                        by ~1,471 VES.
-                      </div>
-                    )}
                   </div>
                 </div>
               </Step>
