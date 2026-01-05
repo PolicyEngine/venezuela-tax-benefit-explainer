@@ -2,28 +2,56 @@
  * Currency utilities for Venezuela Tax-Benefit Explainer
  *
  * Handles VES/USD conversion and formatting.
- * Exchange rate is approximate for 2025 - should be updated periodically.
+ * Exchange rate fetched from API.
  */
 
-// 2025 approximate exchange rate: ~45 VES per 1 USD
-// This is the official rate; parallel market rates vary significantly
-export const VES_PER_USD = 45;
-export const VES_TO_USD_RATE = 1 / VES_PER_USD; // ~0.0222
+// Default rate (updated when API call succeeds)
+// Source: https://fred.stlouisfed.org/series/DEXVZUS
+let VES_PER_USD_CURRENT = 300; // ~300 VES per USD as of Jan 2026
+
+export const getVesPerUsd = () => VES_PER_USD_CURRENT;
+export const setVesPerUsd = (rate: number) => {
+  VES_PER_USD_CURRENT = rate;
+};
+
+// Legacy exports for compatibility
+export const VES_PER_USD = VES_PER_USD_CURRENT;
+export const VES_TO_USD_RATE = 1 / VES_PER_USD_CURRENT;
 
 export type CurrencyCode = "VES" | "USD";
+
+/**
+ * Fetch latest exchange rate from API
+ * Uses exchangerate-api.com free tier
+ */
+export async function fetchExchangeRate(): Promise<number> {
+  try {
+    const response = await fetch(
+      "https://api.exchangerate-api.com/v4/latest/USD",
+    );
+    const data = await response.json();
+    if (data.rates && data.rates.VES) {
+      VES_PER_USD_CURRENT = data.rates.VES;
+      return data.rates.VES;
+    }
+  } catch (error) {
+    console.warn("Failed to fetch exchange rate, using default:", error);
+  }
+  return VES_PER_USD_CURRENT;
+}
 
 /**
  * Convert VES to USD
  */
 export function convertVesToUsd(ves: number): number {
-  return ves * VES_TO_USD_RATE;
+  return ves / VES_PER_USD_CURRENT;
 }
 
 /**
  * Convert USD to VES
  */
 export function convertUsdToVes(usd: number): number {
-  return usd / VES_TO_USD_RATE;
+  return usd * VES_PER_USD_CURRENT;
 }
 
 /**

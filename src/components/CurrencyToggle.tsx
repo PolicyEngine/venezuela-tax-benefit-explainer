@@ -7,12 +7,11 @@
 
 import React from "react";
 import { useCurrency } from "../context/CurrencyContext";
-import { VES_PER_USD } from "../data/currency";
 import { colors } from "../design/colors";
 import { fonts, fontSizes, fontWeights } from "../design/typography";
 
 const CurrencyToggle: React.FC = () => {
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, exchangeRate, isLoadingRate } = useCurrency();
 
   const buttonStyle = (isActive: boolean): React.CSSProperties => ({
     padding: "0.5rem 1rem",
@@ -76,7 +75,7 @@ const CurrencyToggle: React.FC = () => {
           borderRadius: "2px",
         }}
       >
-        1 USD ≈ {VES_PER_USD} VES
+        {isLoadingRate ? "Loading..." : `1 USD ≈ ${Math.round(exchangeRate)} VES`}
       </div>
     </div>
   );
