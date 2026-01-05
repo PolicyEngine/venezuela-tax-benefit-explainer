@@ -1,50 +1,92 @@
 /**
  * Venezuela Tax-Benefit Explainer Design System
  *
- * Muted Venezuelan flag colors with an editorial/data journalism aesthetic.
- * Inspired by The Pudding, Bloomberg, and high-quality policy interactives.
+ * Aligned with PolicyEngine design tokens.
  */
 
 export const colors = {
-  // Primary palette - muted Venezuelan flag colors
-  azul: "#1a3a5c", // Deep navy blue (from flag blue, darkened)
-  azulLight: "#2a5a8c", // Lighter blue for hover states
-  azulPale: "#e8f0f7", // Very light blue for backgrounds
+  // Primary brand colors - teal (PolicyEngine)
+  primary: {
+    50: "#E6FFFA",
+    100: "#B2F5EA",
+    200: "#81E6D9",
+    300: "#4FD1C5",
+    400: "#38B2AC",
+    500: "#319795", // Main brand color
+    600: "#2C7A7B",
+    700: "#285E61",
+    800: "#234E52",
+    900: "#1D4044",
+  },
 
-  oro: "#c9a227", // Warm gold/ochre (from flag yellow, earthier)
-  oroLight: "#e8d48a", // Lighter gold for accents
-  oroPale: "#fdf8e8", // Cream gold for highlights
+  // Gray scale
+  gray: {
+    50: "#F9FAFB",
+    100: "#F2F4F7",
+    200: "#E2E8F0",
+    300: "#D1D5DB",
+    400: "#9CA3AF",
+    500: "#6B7280",
+    600: "#4B5563",
+    700: "#344054",
+    800: "#1F2937",
+    900: "#101828",
+  },
 
-  rojo: "#9c3d3d", // Terra cotta red (from flag red, muted)
-  rojoLight: "#c45a5a", // Brighter red for emphasis
-  rojoPale: "#f9eded", // Pink-tinged white
+  // Semantic colors
+  success: "#22C55E",
+  warning: "#FEC601",
+  error: "#EF4444",
+  info: "#1890FF",
 
-  // Neutral palette
-  parchment: "#f8f6f1", // Warm off-white background
-  parchmentDark: "#ebe7df", // Slightly darker for sections
-  ink: "#1a1a1a", // Near-black for text
-  inkLight: "#4a4a4a", // Gray for secondary text
-  inkMuted: "#7a7a7a", // Muted gray for captions
+  // Neutral colors
+  white: "#FFFFFF",
+  black: "#000000",
 
-  // Chart-specific colors (for stacking)
-  grossIncome: "#2a5a8c", // Blue - base earnings
-  incomeTax: "#9c3d3d", // Red - taxes taken away
-  payrollTax: "#c45a5a", // Lighter red - more taxes
-  benefits: "#2d7a4f", // Green - money coming back
-  amorMayor: "#c9a227", // Gold - the pension
-  childBenefits: "#5a9c7a", // Teal-green - child benefits
-  netIncome: "#1a3a5c", // Navy - final net income
+  // Background colors
+  background: {
+    primary: "#FFFFFF",
+    secondary: "#F5F9FF",
+    tertiary: "#F1F5F9",
+  },
+
+  // Text colors
+  text: {
+    primary: "#000000",
+    secondary: "#5A5A5A",
+    tertiary: "#9CA3AF",
+    inverse: "#FFFFFF",
+  },
+
+  // Border colors
+  border: {
+    light: "#E2E8F0",
+    medium: "#CBD5E1",
+    dark: "#94A3B8",
+  },
+
+  // Chart-specific colors
+  grossIncome: "#319795", // Teal - base earnings
+  incomeTax: "#344054", // Gray - taxes taken away
+  payrollTax: "#6B7280", // Lighter gray - more taxes
+  benefits: "#22C55E", // Green - money coming back
+  amorMayor: "#319795", // Teal - the pension
+  childBenefits: "#4FD1C5", // Light teal - child benefits
+  netIncome: "#1D4044", // Dark teal - final net income
 
   // Cliff highlight
-  cliff: "#dc2626", // Bright red for the cliff
-  cliffGlow: "rgba(220, 38, 38, 0.3)", // Red glow
-};
+  cliff: "#EF4444", // Red for the cliff
 
-export const colorsRGB = {
-  azul: "26, 58, 92",
-  oro: "201, 162, 39",
-  rojo: "156, 61, 61",
-  cliff: "220, 38, 38",
+  // Legacy aliases for compatibility
+  azul: "#319795",
+  azulLight: "#4FD1C5",
+  ink: "#000000",
+  inkLight: "#5A5A5A",
+  inkMuted: "#9CA3AF",
+  parchment: "#FFFFFF",
+  parchmentDark: "#F1F5F9",
+  rojo: "#EF4444",
+  rojoPale: "#FEF2F2",
 };
 
 // Chart color sequence for stacking

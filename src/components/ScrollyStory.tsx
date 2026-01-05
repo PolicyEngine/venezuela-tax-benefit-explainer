@@ -50,10 +50,8 @@ const DEFAULT_CHART_STATE: ChartState = {
 export const STORY_STEPS: StoryStep[] = [
   {
     id: "intro",
-    title: "A Worker in Venezuela",
-    content: `Imagine you're a worker in Venezuela, earning income from a job.
-      Your gross earnings form the foundation of your economic life—but what
-      you actually take home depends on a complex system of taxes and benefits.`,
+    title: "Gross income",
+    content: `A worker in Venezuela earns gross income. Net income depends on taxes and benefits.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -61,11 +59,8 @@ export const STORY_STEPS: StoryStep[] = [
   },
   {
     id: "income-tax",
-    title: "Income Tax: 8 Progressive Brackets",
-    content: `Venezuela uses a progressive income tax system with 8 brackets,
-      ranging from 6% to 34%. The tax is calculated in "Tax Units" (Unidades Tributarias),
-      which in 2025 equals 43 VES. Higher earners face steeper rates on their
-      marginal income.`,
+    title: "Income tax",
+    content: `Venezuela has 8 income tax brackets, ranging from 6% to 34%. Tax is calculated in Tax Units (Unidades Tributarias), equal to 43 VES in 2025.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -74,10 +69,8 @@ export const STORY_STEPS: StoryStep[] = [
   },
   {
     id: "payroll-tax",
-    title: "Payroll Taxes: IVSS and BANAVIH",
-    content: `Workers also pay payroll taxes: 4% to the Venezuelan Social Security Institute (IVSS)
-      and 1% to the housing fund (BANAVIH). These flat 5% taxes apply to all earnings,
-      funding social programs and housing.`,
+    title: "Payroll taxes",
+    content: `Workers pay 4% to IVSS (social security, capped at 5× minimum wage) and 1% to BANAVIH (housing fund, uncapped).`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -87,10 +80,8 @@ export const STORY_STEPS: StoryStep[] = [
   },
   {
     id: "sistema-patria",
-    title: "Sistema Patria: Monthly Bonuses",
-    content: `The Sistema Patria program provides monthly bonuses to cardholders
-      (Carnet de la Patria). In 2025, this equals about 90 VES per month,
-      providing a small but steady supplement to household income.`,
+    title: "Sistema Patria",
+    content: `Carnet de la Patria holders receive 90 VES/month (1,080 VES/year).`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -101,11 +92,8 @@ export const STORY_STEPS: StoryStep[] = [
   },
   {
     id: "amor-mayor",
-    title: "Gran Misión Amor Mayor: The Pension Cliff",
-    content: `For Venezuelans over 60 (women) or 65 (men), the Amor Mayor pension
-      provides a flat benefit—but only if household income stays below the minimum wage.
-      Cross that threshold by even 1 bolívar, and the entire benefit vanishes.
-      This creates a dramatic "cliff" where earning more can mean taking home less.`,
+    title: "Amor Mayor pension",
+    content: `Venezuelans over 60 (women) or 65 (men) with income below 1,560 VES/year receive 1,560 VES/year. At the threshold, the benefit drops to zero, creating a cliff where earning 1 VES more reduces net income by ~1,471 VES.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -119,11 +107,8 @@ export const STORY_STEPS: StoryStep[] = [
   },
   {
     id: "child-benefits",
-    title: "Child Benefits: Escolaridad and Lactancia",
-    content: `Families with children receive additional support. The Bono de Escolaridad
-      provides 446 VES monthly per school-age child (4-17 years), while the Bono de
-      Lactancia gives 558 VES monthly to breastfeeding mothers. These can significantly
-      boost household income for young families.`,
+    title: "Child benefits",
+    content: `Bono de Escolaridad: 446 VES/month per child aged 4-17. Bono de Lactancia: 558 VES/month for breastfeeding mothers. Both require Carnet de la Patria.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -136,11 +121,8 @@ export const STORY_STEPS: StoryStep[] = [
   },
   {
     id: "net-income",
-    title: "Net Income: The Bottom Line",
-    content: `After all taxes and benefits, what remains is net income—the actual
-      purchasing power of a household. The system creates complex incentives,
-      including potential "cliffs" where marginal tax rates exceed 100%.
-      Understanding these dynamics is crucial for policy reform.`,
+    title: "Net income",
+    content: `Net income = gross income − taxes + benefits. The Amor Mayor cliff creates marginal tax rates exceeding 100% at the minimum wage threshold.`,
     chartState: {
       ...DEFAULT_CHART_STATE,
       showGrossIncome: true,
@@ -193,14 +175,12 @@ const ScrollyStory: React.FC = () => {
           style={{
             fontFamily: fonts.display,
             fontSize: fontSizes.hero,
-            fontWeight: fontWeights.black,
+            fontWeight: fontWeights.bold,
             marginBottom: "1rem",
             lineHeight: lineHeights.tight,
           }}
         >
-          Venezuela's
-          <br />
-          Tax-Benefit System
+          Venezuela's tax-benefit system
         </h1>
         <p
           style={{
@@ -210,9 +190,8 @@ const ScrollyStory: React.FC = () => {
             opacity: 0.9,
           }}
         >
-          An interactive guide to understanding how taxes and benefits shape
-          household income—including the dramatic "cliff" effects that can
-          penalize work.
+          How taxes and benefits affect net income, including benefit cliffs
+          with marginal tax rates exceeding 100%.
         </p>
         <div
           style={{
@@ -314,11 +293,10 @@ const ScrollyStory: React.FC = () => {
                         }}
                       >
                         <strong style={{ color: colors.rojo }}>
-                          Benefit Cliff Alert:
+                          MTR exceeds 100%
                         </strong>
-                        <br />
-                        When MTR exceeds 100%, earning more money reduces net
-                        income.
+                        : Earning 100 VES more at the cliff reduces net income
+                        by ~1,471 VES.
                       </div>
                     )}
                   </div>

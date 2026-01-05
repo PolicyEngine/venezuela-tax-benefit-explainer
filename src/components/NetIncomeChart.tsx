@@ -130,6 +130,7 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
+        position: "relative",
       }}
     >
       {/* Title */}
@@ -398,11 +399,26 @@ const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
             color: colors.rojo,
           }}
         >
-          <strong>Benefit Cliff at {formatValue(cliffLocation)}</strong>
-          <br />
-          Crossing the minimum wage threshold causes Amor Mayor to drop to zero
+          <strong>Cliff at {formatValue(cliffLocation)}</strong>: Amor Mayor
+          drops to zero
         </div>
       )}
+
+      {/* PolicyEngine logo */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "0.5rem",
+          right: "0.5rem",
+          opacity: 0.6,
+        }}
+      >
+        <img
+          src="https://raw.githubusercontent.com/PolicyEngine/policyengine-app/master/src/images/logos/policyengine/blue.png"
+          alt="PolicyEngine"
+          style={{ height: "20px" }}
+        />
+      </div>
     </div>
   );
 };
