@@ -1,46 +1,48 @@
-# Getting Started with Create React App
+# Venezuela Tax-Benefit Explainer
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An interactive scrollytelling visualization of Venezuela's tax and benefit system, built with React and TypeScript.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- Progressive storytelling using react-scrollama
+- Visualizes income tax brackets, payroll taxes, and social benefits
+- Demonstrates the Amor Mayor pension "cliff" effect (MTR > 100%)
+- Shows different household types (single worker, elder, family)
 
-### `npm start`
+## Development
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```bash
+# Install dependencies
+npm install
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+# Start development server
+npm start
 
-### `npm test`
+# Run tests
+npm test
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Build for production
+npm run build
+```
 
-### `npm run build`
+## Project Structure
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+src/
+  components/
+    ScrollyStory.tsx    # Main scrollytelling component
+    NetIncomeChart.tsx  # Recharts visualization
+  data/
+    calculator.ts       # Venezuela tax-benefit calculations
+  design/
+    colors.ts           # Venezuelan flag-inspired color palette
+    typography.ts       # Editorial typography system
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Data Sources
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+- Income Tax: SENIAT (Servicio Nacional Integrado de Administración Aduanera y Tributaria)
+- IVSS/BANAVIH: Venezuelan Social Security and Housing Fund laws
+- Amor Mayor: Decreto 8.694 (Gaceta Oficial)
+- Sistema Patria: Official Patria system announcements
+- Child Benefits: Decreto 1.149 (Gaceta 40.465)

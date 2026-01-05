@@ -1,0 +1,416 @@
+/**
+ * NetIncomeChart - Visualizes Venezuela's tax-benefit system
+ *
+ * Shows how gross income transforms into net income through taxes and benefits,
+ * with special emphasis on the Amor Mayor "cliff" effect.
+ */
+
+import React, { useMemo } from "react";
+import {
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  ReferenceArea,
+} from "recharts";
+import {
+  generateIncomeSchedule,
+  CONSTANTS,
+  type HouseholdInput,
+} from "../data/calculator";
+import { colors } from "../design/colors";
+import { fonts, fontSizes, fontWeights } from "../design/typography";
+
+export interface NetIncomeChartProps {
+  chartState: {
+    showGrossIncome: boolean;
+    showIncomeTax: boolean;
+    showPayrollTax: boolean;
+    showSistemaPatria: boolean;
+    showAmorMayor: boolean;
+    showChildBenefits: boolean;
+    showNetIncome: boolean;
+    highlightCliff: boolean;
+    householdType: "single" | "elder" | "family";
+  };
+}
+
+const HOUSEHOLD_CONFIGS: Record<string, Omit<HouseholdInput, "grossIncome">> = {
+  single: {
+    age: 35,
+    isMale: true,
+    hasCarnetPatria: true,
+    isAmorMayorEligible: false,
+    schoolAgeChildren: 0,
+    isBreastfeeding: false,
+    isSistemaPatriaEligible: true,
+  },
+  elder: {
+    age: 68,
+    isMale: true,
+    hasCarnetPatria: true,
+    isAmorMayorEligible: true,
+    schoolAgeChildren: 0,
+    isBreastfeeding: false,
+    isSistemaPatriaEligible: true,
+  },
+  family: {
+    age: 32,
+    isMale: false,
+    hasCarnetPatria: true,
+    isAmorMayorEligible: false,
+    schoolAgeChildren: 2,
+    isBreastfeeding: true,
+    isSistemaPatriaEligible: true,
+  },
+};
+
+const formatCurrency = (value: number): string => {
+  return `${value.toLocaleString("es-VE")} Bs`;
+};
+
+const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
+  const { householdType, highlightCliff } = chartState;
+
+  // Generate data for the selected household type
+  const data = useMemo(() => {
+    const config = HOUSEHOLD_CONFIGS[householdType];
+    const schedule = generateIncomeSchedule(config, 0, 10000, 201);
+
+    return schedule.map((result) => ({
+      grossIncome: result.grossIncome,
+      netIncome: result.netIncome,
+      incomeTax: -result.incomeTax, // Negative for stacking below
+      payrollTax: -result.payrollTax,
+      sistemaPatria: result.sistemaPatria,
+      amorMayor: result.amorMayor,
+      bonoEscolaridad: result.bonoEscolaridad,
+      bonoLactancia: result.bonoLactancia,
+      totalBenefits: result.totalBenefits,
+      // For visualization: stack taxes below, benefits above
+      afterTax: result.grossIncome - result.incomeTax - result.payrollTax,
+      withBenefits: result.netIncome,
+    }));
+  }, [householdType]);
+
+  // Find cliff location for Amor Mayor
+  const cliffLocation = useMemo(() => {
+    if (householdType !== "elder") return null;
+    return CONSTANTS.MINIMUM_WAGE_ANNUAL;
+  }, [householdType]);
+
+  return (
+    <div
+      data-testid="net-income-chart"
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* Title */}
+      <h3
+        style={{
+          fontFamily: fonts.display,
+          fontSize: fontSizes.h3,
+          fontWeight: fontWeights.semibold,
+          color: colors.azul,
+          marginBottom: "0.5rem",
+          textAlign: "center",
+        }}
+      >
+        {householdType === "single" && "Single Worker, Age 35"}
+        {householdType === "elder" && "Retiree, Age 68 (Amor Mayor Eligible)"}
+        {householdType === "family" && "Family with 2 School-Age Children"}
+      </h3>
+
+      {/* Chart */}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={data}
+            margin={{ top: 20, right: 30, left: 60, bottom: 40 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={colors.inkMuted}
+              opacity={0.3}
+            />
+
+            <XAxis
+              dataKey="grossIncome"
+              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              label={{
+                value: "Gross Income (VES/year)",
+                position: "bottom",
+                style: {
+                  fill: colors.ink,
+                  fontFamily: fonts.body,
+                  fontSize: 12,
+                },
+              }}
+              tick={{
+                fill: colors.inkLight,
+                fontFamily: fonts.mono,
+                fontSize: 11,
+              }}
+            />
+
+            <YAxis
+              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              label={{
+                value: "VES/year",
+                angle: -90,
+                position: "insideLeft",
+                style: {
+                  fill: colors.ink,
+                  fontFamily: fonts.body,
+                  fontSize: 12,
+                },
+              }}
+              tick={{
+                fill: colors.inkLight,
+                fontFamily: fonts.mono,
+                fontSize: 11,
+              }}
+            />
+
+            <Tooltip
+              formatter={(value, name) => [
+                typeof value === "number" ? formatCurrency(Math.abs(value)) : "",
+                name ?? "",
+              ]}
+              labelFormatter={(label) =>
+                `Gross: ${formatCurrency(typeof label === "number" ? label : 0)}`
+              }
+              contentStyle={{
+                backgroundColor: "white",
+                border: `1px solid ${colors.inkMuted}`,
+                borderRadius: 4,
+                fontFamily: fonts.body,
+              }}
+            />
+
+            {/* Gross income baseline */}
+            {chartState.showGrossIncome && (
+              <Line
+                type="monotone"
+                dataKey="grossIncome"
+                stroke={colors.azulLight}
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={false}
+                name="Gross Income"
+              />
+            )}
+
+            {/* Income tax (shown as reduction) */}
+            {chartState.showIncomeTax && (
+              <Area
+                type="monotone"
+                dataKey="incomeTax"
+                fill={colors.incomeTax}
+                stroke={colors.incomeTax}
+                fillOpacity={0.7}
+                name="Income Tax"
+                stackId="taxes"
+              />
+            )}
+
+            {/* Payroll tax */}
+            {chartState.showPayrollTax && (
+              <Area
+                type="monotone"
+                dataKey="payrollTax"
+                fill={colors.payrollTax}
+                stroke={colors.payrollTax}
+                fillOpacity={0.7}
+                name="Payroll Tax"
+                stackId="taxes"
+              />
+            )}
+
+            {/* Sistema Patria */}
+            {chartState.showSistemaPatria && (
+              <Area
+                type="monotone"
+                dataKey="sistemaPatria"
+                fill={colors.benefits}
+                stroke={colors.benefits}
+                fillOpacity={0.6}
+                name="Sistema Patria"
+                stackId="benefits"
+              />
+            )}
+
+            {/* Amor Mayor */}
+            {chartState.showAmorMayor && householdType === "elder" && (
+              <Area
+                type="monotone"
+                dataKey="amorMayor"
+                fill={colors.amorMayor}
+                stroke={colors.amorMayor}
+                fillOpacity={0.7}
+                name="Amor Mayor"
+                stackId="benefits"
+              />
+            )}
+
+            {/* Child benefits */}
+            {chartState.showChildBenefits && householdType === "family" && (
+              <>
+                <Area
+                  type="monotone"
+                  dataKey="bonoEscolaridad"
+                  fill={colors.childBenefits}
+                  stroke={colors.childBenefits}
+                  fillOpacity={0.6}
+                  name="Bono Escolaridad"
+                  stackId="benefits"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="bonoLactancia"
+                  fill="#7ab89c"
+                  stroke="#7ab89c"
+                  fillOpacity={0.6}
+                  name="Bono Lactancia"
+                  stackId="benefits"
+                />
+              </>
+            )}
+
+            {/* Net income line */}
+            {chartState.showNetIncome && (
+              <Line
+                type="monotone"
+                dataKey="netIncome"
+                stroke={colors.netIncome}
+                strokeWidth={3}
+                dot={false}
+                name="Net Income"
+              />
+            )}
+
+            {/* Cliff highlight */}
+            {highlightCliff && cliffLocation && (
+              <>
+                <ReferenceLine
+                  x={cliffLocation}
+                  stroke={colors.cliff}
+                  strokeWidth={3}
+                  strokeDasharray="none"
+                  label={{
+                    value: "CLIFF",
+                    position: "top",
+                    fill: colors.cliff,
+                    fontWeight: "bold",
+                    fontSize: 14,
+                  }}
+                />
+                <ReferenceArea
+                  x1={cliffLocation - 100}
+                  x2={cliffLocation + 100}
+                  fill={colors.cliff}
+                  fillOpacity={0.15}
+                />
+              </>
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Legend */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: "1rem",
+          marginTop: "0.5rem",
+          fontSize: fontSizes.small,
+        }}
+      >
+        {chartState.showGrossIncome && (
+          <LegendItem color={colors.azulLight} label="Gross Income" dashed />
+        )}
+        {chartState.showIncomeTax && (
+          <LegendItem color={colors.incomeTax} label="Income Tax" />
+        )}
+        {chartState.showPayrollTax && (
+          <LegendItem color={colors.payrollTax} label="Payroll Tax" />
+        )}
+        {chartState.showSistemaPatria && (
+          <LegendItem color={colors.benefits} label="Sistema Patria" />
+        )}
+        {chartState.showAmorMayor && householdType === "elder" && (
+          <LegendItem color={colors.amorMayor} label="Amor Mayor" />
+        )}
+        {chartState.showChildBenefits && householdType === "family" && (
+          <>
+            <LegendItem color={colors.childBenefits} label="Bono Escolaridad" />
+            <LegendItem color="#7ab89c" label="Bono Lactancia" />
+          </>
+        )}
+        {chartState.showNetIncome && (
+          <LegendItem color={colors.netIncome} label="Net Income" isLine />
+        )}
+      </div>
+
+      {/* Cliff callout */}
+      {highlightCliff && cliffLocation && (
+        <div
+          style={{
+            marginTop: "1rem",
+            padding: "0.75rem",
+            backgroundColor: colors.rojoPale,
+            borderRadius: "4px",
+            textAlign: "center",
+            fontSize: fontSizes.small,
+            color: colors.rojo,
+          }}
+        >
+          <strong>Benefit Cliff at {formatCurrency(cliffLocation)}</strong>
+          <br />
+          Crossing the minimum wage threshold causes Amor Mayor to drop to zero
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface LegendItemProps {
+  color: string;
+  label: string;
+  dashed?: boolean;
+  isLine?: boolean;
+}
+
+const LegendItem: React.FC<LegendItemProps> = ({
+  color,
+  label,
+  dashed,
+  isLine,
+}) => (
+  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <div
+      style={{
+        width: isLine ? 20 : 12,
+        height: isLine ? 3 : 12,
+        backgroundColor: isLine ? color : color,
+        borderRadius: isLine ? 0 : 2,
+        border: dashed ? `2px dashed ${color}` : "none",
+        ...(dashed && { backgroundColor: "transparent" }),
+      }}
+    />
+    <span style={{ color: colors.inkLight }}>{label}</span>
+  </div>
+);
+
+export default NetIncomeChart;
