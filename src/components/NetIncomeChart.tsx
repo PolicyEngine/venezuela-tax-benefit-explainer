@@ -76,7 +76,6 @@ const HOUSEHOLD_CONFIGS: Record<string, Omit<HouseholdInput, "grossIncome">> = {
   },
 };
 
-
 const NetIncomeChart: React.FC<NetIncomeChartProps> = ({ chartState }) => {
   const { householdType, highlightCliff } = chartState;
   const { currency } = useCurrency();

@@ -55,7 +55,13 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({
 
   return (
     <CurrencyContext.Provider
-      value={{ currency, setCurrency, toggleCurrency, exchangeRate, isLoadingRate }}
+      value={{
+        currency,
+        setCurrency,
+        toggleCurrency,
+        exchangeRate,
+        isLoadingRate,
+      }}
     >
       {children}
     </CurrencyContext.Provider>
