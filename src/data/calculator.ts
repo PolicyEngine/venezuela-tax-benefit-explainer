@@ -93,7 +93,8 @@ export function calculateIncomeTax(grossIncome: number): number {
   }
 
   // Calculate tax: (income * rate - deduction) in TU, then convert to VES
-  const taxTU = incomeInTU * applicableBracket.rate - applicableBracket.deduction;
+  const taxTU =
+    incomeInTU * applicableBracket.rate - applicableBracket.deduction;
   return Math.max(taxTU * TAX_UNIT, 0);
 }
 
@@ -212,7 +213,10 @@ export function calculateNetIncome(input: HouseholdInput): CalculationResult {
     schoolAgeChildren,
     hasCarnetPatria,
   );
-  const bonoLactancia = calculateBonoLactancia(isBreastfeeding, hasCarnetPatria);
+  const bonoLactancia = calculateBonoLactancia(
+    isBreastfeeding,
+    hasCarnetPatria,
+  );
 
   const totalTaxes = incomeTax + payrollResult.total;
   const totalBenefits =

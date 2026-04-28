@@ -75,7 +75,9 @@ const CurrencyToggle: React.FC = () => {
           borderRadius: "2px",
         }}
       >
-        {isLoadingRate ? "Loading..." : `1 USD ≈ ${Math.round(exchangeRate)} VES`}
+        {isLoadingRate
+          ? "Loading..."
+          : `1 USD ≈ ${Math.round(exchangeRate)} VES`}
       </div>
     </div>
   );
